@@ -20,8 +20,13 @@ const AUTHN_REQUEST_TEMPLATE = _.template(
 const METADATA_TEMPLATE = _.template(
   fs.readFileSync(path.join(__dirname, '/templates/metadata.tpl'), 'utf8')
 );
-const SLO_URL = '/saml/slo';
-
+const SLO_URL = '/samlproxy/sp/saml/slo';
+const PROFILE_URL = '/samlproxy/sp/profile';
+const LOGIN_URL ='/samlproxy/sp/login';
+const LOGOUT_URL = '/samlproxy/sp/logout';
+const METADATA_URL = '/samlproxy/sp/metadata';
+const SETTINGS_URL = '/samlproxy/sp/settings';
+const ERROR_URL = '/samlproxy/sp/error';
 
 function getPath(path) {
   if (path) {
@@ -48,7 +53,7 @@ module.exports.create = (config) => {
 
   config = _.extend({}, config, {
     requestAcsUrl: config.acsUrls[0],
-    failureRedirect: '/error',
+    failureRedirect: ERROR_URL,
     failureFlash: true,
 
     // can't use arrow functions due to lexical scoping
@@ -229,7 +234,7 @@ module.exports.create = (config) => {
    * Routes
    */
 
-  app.get('/login', function (req, res, next) {
+  app.get(LOGIN_URL, function (req, res, next) {
     const acsUrl = req.query.acsUrl ?
       getReqUrl(req, req.query.acsUrl) :
       getReqUrl(req, config.requestAcsUrl);
@@ -274,11 +279,11 @@ module.exports.create = (config) => {
           _.extend(strategy.options, params);
           passport.authenticate('wsfed-saml2', params)(req, res, next);
         } else {
-          res.redirect('/login');
+          res.redirect(LOGIN_URL);
         }
       },
       function(req, res, next) {
-        res.redirect('/profile');
+        res.redirect(PROFILE_URL);
       });
   });
 
@@ -313,7 +318,7 @@ module.exports.create = (config) => {
   app.get(SLO_URL,logout);
   app.post(SLO_URL,logout);
 
-  app.get(['/', '/profile'], function(req, res) {
+  app.get(['/', PROFILE_URL], function(req, res) {
     if(req.isAuthenticated()){
       res.render('profile', {
         protocol: config.protocol === 'samlp' ? 'SAML Protocol' : 'WS-Federation Protocol',
@@ -322,11 +327,11 @@ module.exports.create = (config) => {
         profile: req.user
       });
     } else {
-      res.redirect('/login');
+      res.redirect(LOGIN_URL);
     }
   });
 
-  app.get('/logout', function (req, res, next) {
+  app.get(LOGOUT_URL, function (req, res, next) {
     if (req.isAuthenticated()) {
       if (config.protocol === 'samlp' && config.idpSloUrl) {
         console.log("Sending SLO request for user %s", req.user.subject.name);
@@ -346,7 +351,7 @@ module.exports.create = (config) => {
     }
   });
 
-  app.get('/metadata', function(req, res, next) {
+  app.get(METADATA_URL, function(req, res, next) {
     const xml = METADATA_TEMPLATE(config.getMetadataParams(req));
     console.log(xml);
     res.set('Content-Type', 'text/xml');
@@ -368,7 +373,7 @@ module.exports.create = (config) => {
     }
   });
 
-  app.post('/settings', function(req, res, next) {
+  app.post(SETTINGS_URL, function(req, res, next) {
     Object.keys(req.body).forEach(function(key) {
       switch(req.body[key].toLowerCase()){
         case 'true': case 'yes': case '1':
@@ -391,7 +396,7 @@ module.exports.create = (config) => {
     res.redirect('/');
   });
 
-  app.get('/error', function(req, res) {
+  app.get(ERROR_URL, function(req, res) {
     const errors = req.flash('error');
     console.log(errors);
     res.render('error', {
@@ -403,9 +408,9 @@ module.exports.create = (config) => {
   app.use(function(req, res) {
     if (!req.isAuthenticated()) {
       req.session.returnTo = req.originalUrl;
-      res.redirect('/login');
+      res.redirect(LOGIN_URL);
     } else {
-      res.redirect('/profile');
+      res.redirect(PROFILE_URL);
     }
   });
 

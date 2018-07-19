@@ -65,17 +65,17 @@
   <div class="panel panel-default">
     <div class="panel-heading">Attribute Statement (Claims)</div>
     <div class="panel-body">
-      <form class="form-horizontal">
+      <form id="claims" class="form-horizontal" action="https://dev.vets.gov/samlproxy/idp/signin" method="POST">
         {{#each profile.claims}}
           <div class="form-group">
             <label for="{{@key}}" class="{{#ifSamlp}}col-sm-3{{else}}col-sm-8{{/ifSamlp}} control-label">{{@key}}</label>
             <div class="{{#ifSamlp}}col-sm-9{{else}}col-sm-4{{/ifSamlp}}">
               {{#ifArray this}}
                 {{#each this}}
-                  <p class="form-control-static">{{this}}</p>
+                  <input class="form-control-static" name={{@key}} value={{this}}></input>
                 {{/each}}
               {{else}}
-                <p class="form-control-static">{{this}}</p>
+                  <input class="form-control-static" name={{@key}} value={{this}}></input>
               {{/ifArray}}
             </div>
           </div>
@@ -185,5 +185,9 @@
       </div>
     </div>
   </form>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+  $("#claims").submit();
 
+</script>
 </div>
